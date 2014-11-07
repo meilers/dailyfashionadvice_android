@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger version="2" >
+
+    <dataSet config="main" >
+        <source path="/Users/omegatai/Documents/Sobremesa/android/birdsaroundme_android/viewpagerindicator/assets" />
+    </dataSet>
+    <dataSet config="debug" >
+        <source path="/Users/omegatai/Documents/Sobremesa/android/birdsaroundme_android/viewpagerindicator/build-types/debug/assets" />
+    </dataSet>
+
+</merger>
