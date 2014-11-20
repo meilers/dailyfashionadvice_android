@@ -29,6 +29,14 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".ItemListActivity" />
         </activity>
+
+        <service android:name=".services.SyncThreadsService" />
+
+
+        <provider
+            android:name=".providers.DFAContentProvider"
+            android:authorities="${applicationId}.providers.DFAContentProvider"
+            android:exported="false" />
     </application>
 
 </manifest>

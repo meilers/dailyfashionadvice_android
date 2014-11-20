@@ -6,6 +6,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 import com.sobremesa.waywt.database.ThreadTable;
 
 import java.text.ParseException;
@@ -44,25 +45,34 @@ public class RemoteThread extends RemoteObject implements Parcelable {
 
 
     @Expose
-    private String threadId;
+    @SerializedName("threadId")
+    private String mThreadId;
 
     @Expose
-    private String title;
+    @SerializedName("permalink")
+    private String mPermalink;
 
     @Expose
-    private String description;
+    @SerializedName("title")
+    private String mTitle;
 
     @Expose
-    private String tag;
+    @SerializedName("description")
+    private String mDescription;
 
     @Expose
-    private String created;
+    @SerializedName("tag")
+    private String mTag;
+
+    @Expose
+    @SerializedName("created")
+    private String mCreated;
 
 
 
     @Override
     public String getIdentifier() {
-        return threadId;
+        return mPermalink;
     }
 
 
@@ -71,6 +81,7 @@ public class RemoteThread extends RemoteObject implements Parcelable {
 
     public RemoteThread(final Cursor cursor) {
         setThreadId(cursor.getString(cursor.getColumnIndex(ThreadTable.THREAD_ID)));
+        setPermalink(cursor.getString(cursor.getColumnIndex(ThreadTable.PERMALINK)));
         setTitle(cursor.getString(cursor.getColumnIndex(ThreadTable.TITLE)));
         setDescription(cursor.getString(cursor.getColumnIndex(ThreadTable.DESCRIPTION)));
         setTag(cursor.getString(cursor.getColumnIndex(ThreadTable.TAG)));
@@ -93,6 +104,13 @@ public class RemoteThread extends RemoteObject implements Parcelable {
 
         if( this.getThreadId() != null )
             dest.writeString(this.getThreadId());
+
+
+        dest.writeInt(this.getPermalink() != null ? 1:0);
+
+        if( this.getPermalink() != null )
+            dest.writeString(this.getPermalink());
+
 
 
         dest.writeInt(this.getTitle() != null ? 1:0);
@@ -126,6 +144,9 @@ public class RemoteThread extends RemoteObject implements Parcelable {
             setThreadId(in.readString());
 
         if( in.readInt() == 1 )
+            setPermalink(in.readString());
+
+        if( in.readInt() == 1 )
             setTitle(in.readString());
 
         if( in.readInt() == 1 )
@@ -153,42 +174,50 @@ public class RemoteThread extends RemoteObject implements Parcelable {
 
 
     public String getThreadId() {
-        return threadId;
+        return mThreadId;
+    }
+
+    public String getPermalink() {
+        return mPermalink;
     }
 
     public String getTitle() {
-        return title;
+        return mTitle;
     }
 
     public String getDescription() {
-        return description;
+        return mDescription;
     }
 
     public String getTag() {
-        return tag;
+        return mTag;
     }
 
     public String getCreated() {
-        return created;
+        return mCreated;
     }
 
     public void setThreadId(String threadId) {
-        this.threadId = threadId;
+        mThreadId = threadId;
+    }
+
+    public void setPermalink(String permalink) {
+        mPermalink = permalink;
     }
 
     public void setTitle(String title) {
-        this.title = title;
+        mTitle = title;
     }
 
     public void setDescription(String description) {
-        this.description = description;
+        mDescription = description;
     }
 
     public void setTag(String tag) {
-        this.tag = tag;
+        mTag = tag;
     }
 
     public void setCreated(String created) {
-        this.created = created;
+        mCreated = created;
     }
 }

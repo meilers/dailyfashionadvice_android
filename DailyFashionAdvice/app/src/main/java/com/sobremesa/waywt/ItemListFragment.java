@@ -1,25 +1,35 @@
 package com.sobremesa.waywt;
 
-import android.app.Activity;
+import android.database.Cursor;
 import android.os.Bundle;
-import android.app.ListFragment;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ArrayAdapter;
+import android.view.ViewGroup;
 import android.widget.ListView;
 
 
-import com.sobremesa.waywt.dummy.DummyContent;
+import com.sobremesa.waywt.adapters.ThreadAdapter;
+import com.sobremesa.waywt.database.ThreadTable;
+import com.sobremesa.waywt.models.RemoteThread;
+import com.sobremesa.waywt.providers.DFAContentProvider;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A list fragment representing a list of Items. This fragment
  * also supports tablet devices by allowing list items to be given an
  * 'activated' state upon selection. This helps indicate which item is
  * currently being viewed in a {@link ItemDetailFragment}.
- * <p>
- * Activities containing this fragment MUST implement the {@link Callbacks}
- * interface.
  */
-public class ItemListFragment extends ListFragment {
+public class ItemListFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     /**
      * The serialization (saved instance state) Bundle key representing the
@@ -27,38 +37,18 @@ public class ItemListFragment extends ListFragment {
      */
     private static final String STATE_ACTIVATED_POSITION = "activated_position";
 
-    /**
-     * The fragment's current callback object, which is notified of list item
-     * clicks.
-     */
-    private Callbacks mCallbacks = sDummyCallbacks;
 
     /**
      * The current activated item position. Only used on tablets.
      */
     private int mActivatedPosition = ListView.INVALID_POSITION;
+    private boolean mActivateOnClick;
 
-    /**
-     * A callback interface that all activities containing this fragment must
-     * implement. This mechanism allows activities to be notified of item
-     * selections.
-     */
-    public interface Callbacks {
-        /**
-         * Callback for when an item has been selected.
-         */
-        public void onItemSelected(String id);
-    }
+    private RecyclerView mThreadRv;
+    private LinearLayoutManager mThreadLayoutManager;
+    private ThreadAdapter mThreadAdapter;
+    private List<RemoteThread> mThreads;
 
-    /**
-     * A dummy implementation of the {@link Callbacks} interface that does
-     * nothing. Used only when this fragment is not attached to an activity.
-     */
-    private static Callbacks sDummyCallbacks = new Callbacks() {
-        @Override
-        public void onItemSelected(String id) {
-        }
-    };
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -71,12 +61,30 @@ public class ItemListFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // TODO: replace with a real list adapter.
-        setListAdapter(new ArrayAdapter<DummyContent.DummyItem>(
-                getActivity(),
-                android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1,
-                DummyContent.ITEMS));
+        mThreads = new ArrayList<RemoteThread>();
+
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_thread_list, null, false);
+
+        mThreadRv = (RecyclerView) view.findViewById(R.id.fragment_thread_list_rv);
+
+        // use this setting to improve performance if you know that changes
+        // in content do not change the layout size of the RecyclerView
+        mThreadRv.setHasFixedSize(true);
+
+        // use a linear layout manager
+        mThreadLayoutManager = new LinearLayoutManager(getActivity());
+        mThreadRv.setLayoutManager(mThreadLayoutManager);
+
+        // specify an adapter (see also next example)
+
+        mThreadAdapter = new ThreadAdapter(mThreads);
+        mThreadRv.setAdapter(mThreadAdapter);
+
+        return view;
     }
 
     @Override
@@ -91,32 +99,11 @@ public class ItemListFragment extends ListFragment {
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
+    public void onStart() {
+        super.onStart();
 
-        // Activities containing this fragment must implement its callbacks.
-        if (!(activity instanceof Callbacks)) {
-            throw new IllegalStateException("Activity must implement fragment's callbacks.");
-        }
+        getActivity().getSupportLoaderManager().initLoader(DFAConstants.THREADS_LOADER_ID, null, this);
 
-        mCallbacks = (Callbacks) activity;
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-
-        // Reset the active callbacks interface to the dummy implementation.
-        mCallbacks = sDummyCallbacks;
-    }
-
-    @Override
-    public void onListItemClick(ListView listView, View view, int position, long id) {
-        super.onListItemClick(listView, view, position, id);
-
-        // Notify the active callbacks interface (the activity, if the
-        // fragment is attached to one) that an item has been selected.
-        mCallbacks.onItemSelected(DummyContent.ITEMS.get(position).id);
     }
 
     @Override
@@ -128,25 +115,59 @@ public class ItemListFragment extends ListFragment {
         }
     }
 
-    /**
-     * Turns on activate-on-click mode. When this mode is on, list items will be
-     * given the 'activated' state when touched.
-     */
     public void setActivateOnItemClick(boolean activateOnItemClick) {
-        // When setting CHOICE_MODE_SINGLE, ListView will automatically
-        // give items the 'activated' state when touched.
-        getListView().setChoiceMode(activateOnItemClick
-                ? ListView.CHOICE_MODE_SINGLE
-                : ListView.CHOICE_MODE_NONE);
+        mActivateOnClick = activateOnItemClick;
     }
+
 
     private void setActivatedPosition(int position) {
-        if (position == ListView.INVALID_POSITION) {
-            getListView().setItemChecked(mActivatedPosition, false);
-        } else {
-            getListView().setItemChecked(position, true);
+        if( mActivateOnClick )
+        {
+            if (position == ListView.INVALID_POSITION) {
+                mThreadAdapter.clearSelections();
+            } else {
+                mThreadAdapter.toggleSelection(position);
+            }
+
+            mActivatedPosition = position;
         }
 
-        mActivatedPosition = position;
     }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle bundle) {
+
+        switch (id)
+        {
+            case DFAConstants.THREADS_LOADER_ID:
+                return new CursorLoader(getActivity(), DFAContentProvider.Uris.THREADS_URI, ThreadTable.ALL_COLUMNS, null, null, null);
+
+        }
+
+        return null;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        switch (cursorLoader.getId()) {
+
+            case DFAConstants.THREADS_LOADER_ID:
+                if (cursor != null) {
+                    mThreads.clear();
+
+                    for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+                        mThreads.add(new RemoteThread(cursor));
+                    }
+
+                    mThreadAdapter.notifyDataSetChanged();
+                }
+                break;
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> cursorLoader) {
+
+    }
+
 }

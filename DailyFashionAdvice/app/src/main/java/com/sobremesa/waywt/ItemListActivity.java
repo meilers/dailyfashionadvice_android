@@ -2,9 +2,12 @@ package com.sobremesa.waywt;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.app.Activity;
+import android.support.v4.app.FragmentActivity;
 
+import com.sobremesa.waywt.events.ThreadItemClickedEvent;
+import com.sobremesa.waywt.services.SyncThreadsService;
 
+import de.greenrobot.event.EventBus;
 
 
 /**
@@ -18,13 +21,8 @@ import android.app.Activity;
  * The activity makes heavy use of fragments. The list of items is a
  * {@link ItemListFragment} and the item details
  * (if present) is a {@link ItemDetailFragment}.
- * <p>
- * This activity also implements the required
- * {@link ItemListFragment.Callbacks} interface
- * to listen for item selections.
  */
-public class ItemListActivity extends Activity
-        implements ItemListFragment.Callbacks {
+public class ItemListActivity extends FragmentActivity {
 
     /**
      * Whether or not the activity is in two-pane mode, i.e. running on a tablet
@@ -46,26 +44,38 @@ public class ItemListActivity extends Activity
 
             // In two-pane mode, list items should be given the
             // 'activated' state when touched.
-            ((ItemListFragment) getFragmentManager()
+            ((ItemListFragment) getSupportFragmentManager()
                     .findFragmentById(R.id.item_list))
                     .setActivateOnItemClick(true);
         }
 
         // TODO: If exposing deep links into your app, handle intents here.
+        final Intent intent = new Intent(this, SyncThreadsService.class);
+        Bundle extras = new Bundle();
+        extras.putBoolean(SyncThreadsService.EXTRAS.IS_MALE, true);
+        extras.putBoolean(SyncThreadsService.EXTRAS.IS_TEEN, false);
+        intent.putExtras(extras);
+        intent.setAction(SyncThreadsService.ACTIONS.SYNC_THREADS);
+        startService(intent);
+
+
+        EventBus.getDefault().register(this);
     }
 
-    /**
-     * Callback method from {@link ItemListFragment.Callbacks}
-     * indicating that the item with the given ID was selected.
-     */
     @Override
-    public void onItemSelected(String id) {
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
+    }
+
+
+    public void onEventMainThread(ThreadItemClickedEvent event) {
         if (mTwoPane) {
             // In two-pane mode, show the detail view in this activity by
             // adding or replacing the detail fragment using a
             // fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putString(ItemDetailFragment.ARG_ITEM_ID, id);
+            arguments.putString(ItemDetailFragment.ARG_ITEM_ID, event.getPosition()+"");
             ItemDetailFragment fragment = new ItemDetailFragment();
             fragment.setArguments(arguments);
             getFragmentManager().beginTransaction()
@@ -76,8 +86,9 @@ public class ItemListActivity extends Activity
             // In single-pane mode, simply start the detail activity
             // for the selected item ID.
             Intent detailIntent = new Intent(this, ItemDetailActivity.class);
-            detailIntent.putExtra(ItemDetailFragment.ARG_ITEM_ID, id);
+            detailIntent.putExtra(ItemDetailFragment.ARG_ITEM_ID, event.getPosition()+"");
             startActivity(detailIntent);
         }
     }
+
 }

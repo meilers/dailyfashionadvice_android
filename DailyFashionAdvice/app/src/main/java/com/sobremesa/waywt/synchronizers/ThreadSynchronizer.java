@@ -45,7 +45,7 @@ public class ThreadSynchronizer extends BaseSynchronizer<RemoteThread>{
                 ++i;
             }
 
-            doBulkInsertOptimised(val);
+            doBulkInsertOptimised(context, val);
         }
 
 
@@ -79,9 +79,8 @@ public class ThreadSynchronizer extends BaseSynchronizer<RemoteThread>{
         }
     }
 
-    private int doBulkInsertOptimised(ContentValues values[]) {
+    private int doBulkInsertOptimised(Context context, ContentValues values[]) {
 
-        Context context = DFAApplication.getContext();
         DFADatabaseHelper helper = DFADatabaseHelper.getInstance(context);
         SQLiteDatabase db = helper.getWritableDatabase();
 
@@ -99,6 +98,13 @@ public class ThreadSynchronizer extends BaseSynchronizer<RemoteThread>{
 
                 if( value != null )
                     inserter.bind(inserter.getColumnIndex(ThreadTable.THREAD_ID), value);
+
+
+                value = (String)values[i].get(ThreadTable.PERMALINK);
+
+                if( value != null )
+                    inserter.bind(inserter.getColumnIndex(ThreadTable.PERMALINK), value);
+
 
 
                 value = (String)values[i].get(ThreadTable.TITLE);
